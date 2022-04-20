@@ -1,0 +1,1 @@
+"""The Outdoor Clothes integration."""

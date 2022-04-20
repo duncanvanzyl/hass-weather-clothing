@@ -1,0 +1,15 @@
+{
+  "domain": "clothing",
+  "name": "Outdoor Clothes",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/clothing",
+  "requirements": ["weather_clothing>=0.1.0"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@duncanvanzyl"
+  ],
+  "iot_class": "calculated"
+}
