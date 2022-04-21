@@ -4,6 +4,19 @@ from collections import OrderedDict
 
 DOMAIN = "clothing"
 
+ATTR_FORECAST = "forecast"
+
+CONF_HOURS = "hours"
+CONF_SELECTOR_KEY = "config"
+
+OPTION_JACKET = "jacket"
+OPTION_PANTS = "pants"
+OPTION_BOOTS = "boots"
+OPTION_DAY = "day"
+OPTION_HOUR = "hour"
+
+MIN_CONFIDENCE = 0.2
+
 DEFAULT_JACKET_CONFIG = OrderedDict(
     [
         ("Winter Jacket", ["temperature < 5"]),
@@ -29,9 +42,3 @@ DEFAULT_BOOTS_CONFIG = OrderedDict(
         ("Shoes", ["temperature >= 5"]),
     ]
 )
-
-ATTR_FORECAST = "forecast"
-CONF_JACKET = "jacket"
-CONF_PANTS = "pants"
-CONF_BOOTS = "boots"
-CONF_CONFIG_KEY = "config"

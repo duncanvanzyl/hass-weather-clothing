@@ -1,15 +1,16 @@
 {
   "domain": "clothing",
   "name": "Outdoor Clothes",
-  "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/clothing",
-  "requirements": ["weather_clothing>=0.1.0"],
-  "ssdp": [],
-  "zeroconf": [],
-  "homekit": {},
+  "config_flow": false,
+  "documentation": "https://github.com/duncanvanzyl/hass-weather-clothing",
+  "issue_tracker": "https://github.com/duncanvanzyl/hass-weather-clothing/issues",
+  "requirements": [
+    "weather_clothing>=0.2.0"
+  ],
   "dependencies": [],
   "codeowners": [
     "@duncanvanzyl"
   ],
-  "iot_class": "calculated"
+  "iot_class": "calculated",
+  "version": "0.2.0"
 }
