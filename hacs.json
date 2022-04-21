@@ -1,5 +1,6 @@
 {
     "name": "Weather Clothing",
     "content_in_root": true,
-    "homeassistant": "2022.4.0"
+    "homeassistant": "2022.4.0",
+    "render_readme": true
 }
