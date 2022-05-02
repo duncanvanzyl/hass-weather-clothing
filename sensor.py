@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from datetime import datetime, timedelta
 from math import ceil
 from typing import Any, Optional
 
@@ -13,14 +12,14 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.components.weather import ATTR_FORECAST, ATTR_FORECAST_TIME
+from homeassistant.components.weather import ATTR_FORECAST
 from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
 from homeassistant.const import (
+    CONF_CONDITIONS,
     CONF_DEFAULT,
     CONF_ENTITY_ID,
     CONF_MODE,
     CONF_NAME,
-    CONF_SELECTOR,
     CONF_UNIQUE_ID,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
@@ -30,9 +29,7 @@ from homeassistant.exceptions import IntegrationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.util import dt as dt_util
 from weather_clothing.clothing_item import ClothingItem
-from weather_clothing.comparisons import operator_map as om
 
 from .const import (
     ATTR_FORECAST,
@@ -48,6 +45,7 @@ from .const import (
     OPTION_JACKET,
     OPTION_PANTS,
 )
+from .helpers import clothing_from_config, hours_from_forecast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +55,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_ENTITY_ID): cv.entity_domain(WEATHER_DOMAIN),
         vol.Optional(CONF_UNIQUE_ID): cv.string,
-        vol.Exclusive(CONF_SELECTOR, CONF_SELECTOR_KEY): OrderedDict([(str, [str])]),
+        vol.Exclusive(CONF_CONDITIONS, CONF_SELECTOR_KEY): OrderedDict([(str, [str])]),
         vol.Exclusive(CONF_DEFAULT, CONF_SELECTOR_KEY): vol.Any(
             OPTION_JACKET, OPTION_PANTS, OPTION_BOOTS
         ),
@@ -89,69 +87,23 @@ async def async_setup_platform(
     entity_id = config[CONF_ENTITY_ID]
     unique_id = config.get(CONF_UNIQUE_ID)
 
-    selector = config.get(CONF_SELECTOR)
-    if selector is None:
+    conditions = config.get(CONF_CONDITIONS)
+    if conditions is None:
         default = config[CONF_DEFAULT]
         if default == OPTION_JACKET:
-            selector = DEFAULT_JACKET_CONFIG
+            conditions = DEFAULT_JACKET_CONFIG
         elif default == OPTION_PANTS:
-            selector = DEFAULT_PANTS_CONFIG
+            conditions = DEFAULT_PANTS_CONFIG
         elif default == OPTION_BOOTS:
-            selector = DEFAULT_BOOTS_CONFIG
+            conditions = DEFAULT_BOOTS_CONFIG
         else:
             raise IntegrationError(f"Could not create clothing sensor: {name}")
 
-    sensor = ClothingSensor(name, hours, selector, unique_id)
+    sensor = ClothingSensor(name, hours, conditions, unique_id)
 
     async_track_state_change_event(hass, entity_id, sensor.listen_event)
 
     add_entities([sensor])
-
-
-def clothing_from_config(
-    config: dict[str, Any], min_count: int = 1
-) -> list[ClothingItem]:
-    """Convert a dictionary of clothing items and criteria into a list of
-    ClothingItems.
-    """
-    clothing_items: list[ClothingItem] = []
-    priority: int = 0
-    for item in config:
-        comparisons = [
-            om.comparison_from_string(comparison) for comparison in config[item]
-        ]
-        clothing_items.append(ClothingItem(item, priority, comparisons, min_count))
-        priority += 1
-    return clothing_items
-
-
-def hours_from_forecast(
-    forecast: list[dict[str, Any]], hours: int = 1
-) -> list[dict[str, Any]]:
-    """Get the hours of the forecast that are relent."""
-    now = dt_util.now()
-    diff = timedelta(hours=hours)
-
-    trimmed_forecast: list[dict[str, Any]] = []
-
-    for prediction in forecast:
-        # Environment Canada integration returns datetime objects for hourly
-        # forecast, and isoformatted strings for daily forecasts. So fix them
-        # here.
-        # TODO: Fix the Environment Canada integration.
-        if isinstance(prediction[ATTR_FORECAST_TIME], datetime):
-            prediction_time: datetime = prediction[ATTR_FORECAST_TIME]
-            prediction[ATTR_FORECAST_TIME] = prediction_time.isoformat()
-        elif isinstance(prediction[ATTR_FORECAST_TIME], str):
-            prediction_time = datetime.fromisoformat(prediction[ATTR_FORECAST_TIME])
-        else:
-            raise ValueError(
-                f"forecast '{ATTR_FORECAST_TIME}' should be an iso formatted datetime string"
-            )
-        if prediction_time - now < diff:
-            trimmed_forecast.append(prediction)
-
-    return trimmed_forecast
 
 
 class ClothingSensor(SensorEntity):
@@ -167,12 +119,12 @@ class ClothingSensor(SensorEntity):
         self,
         name: str,
         hours: int,
-        clothing_config: OrderedDict[str, list[str]],
+        conditions: OrderedDict[str, list[str]],
         unique_id: Optional[str],
     ) -> None:
         self._attr_name = name
         self._hours = hours
-        self._clothing_config = clothing_config
+        self._conditions = conditions
         self._attr_unique_id = unique_id
 
     def predict(self, forecast: list[dict[str, Any]]) -> None:
@@ -181,14 +133,15 @@ class ClothingSensor(SensorEntity):
         # It might be better to update the weather_clothing library.
         min_count = ceil(MIN_CONFIDENCE * len(forecast))
 
-        items: list[ClothingItem] = clothing_from_config(
-            self._clothing_config, min_count
-        )
+        items: list[ClothingItem] = clothing_from_config(self._conditions, min_count)
 
         for item in items:
             for prediction in forecast:
-                if item.meets_criteria(prediction):
-                    item.inc()
+                try:
+                    if item.meets_criteria(prediction):
+                        item.inc()
+                except TypeError as err:
+                    _LOGGER.error("WTF: Error: %s, Forecast: %s", err, forecast)
             if item.value is not None:
                 self._clothing = item.name
                 self._confidence = item.confidence

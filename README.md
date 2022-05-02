@@ -8,27 +8,31 @@ Sensors that recommend clothing based on the weather forecast.
 - Display names (clothing items) configurable per sensor.
 - Criteria configurable per sensor.
 - Default values.
-- Works with both daily forecasts and hourly forcasts.
+- Works with both daily forecasts and hourly foercasts.
 - Configurable time ranges for criteria per sensor.
+- Provides both a sensor and a binary_sensor platform.
 
-## Configuration
+## Sensor Configuration
 
 - __name__: Friendly name of the sensor.
 - __entity_id__: Weather entity supplying the forcast (either _hourly_ or
     _daily_).
-- __unique_id__: Unique ID for customizing the sensor. (_Optional_)
-- __selector__: A series of clothing items and the conditions under which they
-    would be appropriate. See [Selector](#Selector) for more details.
+- __unique_id__: Unique ID for customizing the sensor.  
+    (_Optional_)
+- __conditions__: A series of clothing items and the conditions under which they
+    would be appropriate. See [Sensor Conditons](#sensor-conditions) for more
+    details.  
     (_Optional_ but if you don't use it, then you must have __default__)
-- __default__: One of the default sets of selectors. See [Default](#Default) for
-    more details. (_Optional_ but if you don't use it, then you must have
-    __selector__)
+- __default__: One of the default sets of conditions. See [Sensor Defaults](#sensor-defaults) 
+    for more details.  
+    (_Optional_ but if you don't use it, then you must have __conditions__)
     - `jacket`
     - `pants`
     - `boots`
+    > Only avaliable for __sensor__.  
 - __mode__: Either a shorthand or the number of hours to consider from the
-    forecast. See [Mode](#Mode) for more details. (_Optional_: Defaults to
-    _hour_)
+    forecast. See [Mode](#mode) for more details.  
+    (_Optional_: Defaults to _hour_)
     - `hour`
     - `day`
     - `hours: <hours in range 1 - 24>`
@@ -46,7 +50,7 @@ sensor:
   - platform: clothing
     name: Pants
     entity_id: weather.montreal_hourly
-    selector:
+    conditions:
       "Snow Pants":
       - temperature < -2
       "Rain Pants":
@@ -67,7 +71,7 @@ sensor:
   - platform: clothing
     name: Boots
     entity_id: weather.montreal_hourly
-    selector:
+    conditions:
       "Winter Boots":
       - temperature < 5
       "Rain Boots":
@@ -78,9 +82,9 @@ sensor:
       hours: 24
 ```
 
-## Selector
+## Sensor Conditions
 
-Selector allows you to set appropriate outerwear (or anything else really) based
+Conditions allows you to set appropriate outerwear (or anything else really) based
 on forecast conditions. The format is a named clothing item as a key with a list
 of weather conditions (criteria) that need to be met for that clothing item to
 be appropriate. All criteria must be met for the clothing to be recommended.
@@ -91,44 +95,13 @@ be appropriate. All criteria must be met for the clothing to be recommended.
 - <criteria 2>
 ```
 
-### Criteria
 
-Criteria must be in the form: `<forecast key> <operator> <value>`.
-
-#### Forecast Key
-
-The forecast keys are any key that a forecast provides. Current keys are:
-- `datetime` (_though this one isn't super helpful_)
-- `temperature`
-- `condition`
-- `precipitation_probability`
-
-#### Operator
-
-The standard comparison operators you might expect are supported:
-- `<` - Forecast is less than value
-- `<=` - Forecast is less than or equal to value
-- `==` - Forecast is equal to value
-- `>=` - Forecast is greater than or equal to value
-- `>` - Forecast is greater than value
-- `!=` - Forecast is not equal to value
-
-#### Value
-
-Value can be either a `string` or a `float`. This allows the criteria to be, for
-example:
-`temperature < 5` or `temperature < 5.5` or `condition == sunny`
-
-> For __string comparisons__, they are just that. So while `cloudy < sunny` is
-true, it probably isn't all that useful to do string comparisons with operators
-other than `==` and `!=`.
-
-## Default
+## Sensor Defaults
 
 There are three defaults with reasonable values for clothing:
 
 - Jacket: This is a set of outerwear worn on your upper body. 😉  
-    The selectors this matches to are:
+    The conditions this matches are:
     ```yaml
     "Winter Jacket":
     - temperature < 5
@@ -144,7 +117,7 @@ There are three defaults with reasonable values for clothing:
     - temperature > 20
     ```
 - Pants: This is a set of outerwear worn on your legs.  
-    The selectors this matches to are:
+    The conditions this matches are:
     ```yaml
     "Snow Pants":
     - temperature < -2
@@ -157,7 +130,7 @@ There are three defaults with reasonable values for clothing:
     - temperature >= 17
     ```
 - Boots: These are things to wear on your feet.  
-    The selectors this matches to are:
+    The conditions this matches are:
     ```yaml
     "Winter Boots":
     - temperature < 5
@@ -166,6 +139,81 @@ There are three defaults with reasonable values for clothing:
     "Shoes":
     - temperature >= 5
     ```
+
+## Bianry Sensor Configuration
+
+- __name__: Friendly name of the sensor.
+- __entity_id__: Weather entity supplying the forcast (either _hourly_ or
+    _daily_).
+- __unique_id__: Unique ID for customizing the sensor.  
+    (_Optional_)
+- __conditions__: A list of conditions for which the sensor will be set. See
+    [Binary Sensor Conditons](#binary-sensor-conditions) for more details.  
+    (_Optional_ but if you don't use it, then you must have __default__)
+- __mode__: Either a shorthand or the number of hours to consider from the
+    forecast. See [Mode](#mode) for more details.  
+    (_Optional_: Defaults to _hour_)
+    - `hour`
+    - `day`
+    - `hours: <hours in range 1 - 24>`
+
+_Example_:
+
+```yaml
+binary_sensor:
+  - platform: clothing
+    name: Mow the Grass now
+    entity_id: weather.ottawa_richmond_metcalfe_hourly
+    unique_id: mow_grass
+    conditions:
+      - temperature > 5
+      - precipitation_probability < 20
+    mode:
+      hours: 4
+```
+
+## Binary Sensor Conditions
+
+Conditions allows you to set the binary sensor based on the forecast. The format
+is a list of weather conditions (criteria) that need to be met for binary sensor
+to be set. All criteria must be met for the binary sensor to be set.
+
+```yaml
+- <criteria 1>
+- <criteria 2>
+```
+
+## Criteria
+
+Criteria must be in the form: `<forecast key> <operator> <value>`.
+
+### Forecast Key
+
+The forecast keys are any key that a forecast provides. Current keys are:
+- `datetime` (_though this one isn't super helpful_)
+- `temperature`
+- `condition`
+- `precipitation_probability`
+
+### Operator
+
+The standard comparison operators you might expect are supported:
+- `<` - Forecast is less than value
+- `<=` - Forecast is less than or equal to value
+- `==` - Forecast is equal to value
+- `>=` - Forecast is greater than or equal to value
+- `>` - Forecast is greater than value
+- `!=` - Forecast is not equal to value
+
+### Value
+
+Value can be either a `string` or a `float`. This allows the criteria to be, for
+example:
+`temperature < 5` or `temperature < 5.5` or `condition == sunny`
+
+> For __string comparisons__, they are just that. So while `cloudy < sunny` is
+true, it probably isn't all that useful to do string comparisons with operators
+other than `==` and `!=`.
 
 ## Mode
 
