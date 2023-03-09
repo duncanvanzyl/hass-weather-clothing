@@ -9,8 +9,8 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
+    SensorDeviceClass,
     SensorEntity,
-    SensorStateClass,
 )
 from homeassistant.components.weather import ATTR_FORECAST
 from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
@@ -110,7 +110,8 @@ class ClothingSensor(SensorEntity):
     """Representation of a Clothing Sensor."""
 
     _attr_icon = "mdi:tshirt-crew"
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = None
+    _attr_device_class = SensorDeviceClass.ENUM
     _clothing: str = STATE_UNKNOWN
     _confidence: float = 0
     _n: int = 0
@@ -126,6 +127,7 @@ class ClothingSensor(SensorEntity):
         self._hours = hours
         self._conditions = conditions
         self._attr_unique_id = unique_id
+        self._attr_options = [item for item in conditions]
 
     def predict(self, forecast: list[dict[str, Any]]) -> None:
         """Predict the appropriate clothing based on the forecast."""
